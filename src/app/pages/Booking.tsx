@@ -12,6 +12,8 @@ import PlaneAnimation from "../components/PlaneAnimation";
 import { getAirlineColor } from "../utils/airlineColors";
 import PageTransition from "../components/PageTransition";
 import AnimationOverlay from "../components/AnimationOverlay";
+import { apiFetch } from "../lib/api";
+import { getAccessToken } from "../lib/auth";
 
 export default function Booking() {
   const location = useLocation();
@@ -28,10 +30,29 @@ export default function Booking() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showPlaneAnimation, setShowPlaneAnimation] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowPlaneAnimation(true);
-    toast.success("Booking confirmed!");
+    try {
+      await apiFetch(
+        "/bookings",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            flight_id: flight.id,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+          }),
+        },
+        getAccessToken() || undefined
+      );
+
+      setShowPlaneAnimation(true);
+      toast.success("Booking confirmed!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Booking failed");
+    }
   };
 
   const handleAnimationComplete = () => {
@@ -182,11 +203,11 @@ export default function Booking() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="text-sm text-muted-foreground">Departure</div>
-                    <div>{flight.departureTime}</div>
+                    <div>{flight.departure_time}</div>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Arrival</div>
-                    <div>{flight.arrivalTime}</div>
+                    <div>{flight.arrival_time}</div>
                   </div>
                 </div>
 

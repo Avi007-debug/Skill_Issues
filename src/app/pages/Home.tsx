@@ -15,7 +15,11 @@ export default function Home() {
   const [travelers, setTravelers] = useState("1");
 
   const handleSearch = () => {
-    navigate("/flights");
+    const params = new URLSearchParams();
+    if (from) params.set("source", from);
+    if (to) params.set("destination", to);
+    if (date) params.set("date", date);
+    navigate(`/flights?${params.toString()}`);
   };
 
   return (

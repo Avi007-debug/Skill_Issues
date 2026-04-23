@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router";
 import { Moon, Sun, User } from "lucide-react";
 import { Button } from "./ui/button";
+import { getAccessToken } from "../lib/auth";
 
 interface HeaderProps {
   theme: "light" | "dark";
@@ -9,6 +10,7 @@ interface HeaderProps {
 
 export default function Header({ theme, toggleTheme }: HeaderProps) {
   const location = useLocation();
+  const hasSession = Boolean(getAccessToken());
 
   const navItems = [
     { path: "/flights", label: "Flights" },
@@ -58,10 +60,10 @@ export default function Header({ theme, toggleTheme }: HeaderProps) {
               <Sun className="h-5 w-5" />
             )}
           </Button>
-          <Link to="/auth">
+          <Link to={hasSession ? "/profile" : "/auth"}>
             <Button variant="outline" className="gap-2">
               <User className="h-4 w-4" />
-              Login
+              {hasSession ? "Profile" : "Login"}
             </Button>
           </Link>
         </div>

@@ -6,23 +6,46 @@ import { Button } from "../components/ui/button";
 import { Bell, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import PageTransition from "../components/PageTransition";
+import { apiFetch } from "../lib/api";
+import { getAccessToken } from "../lib/auth";
+import { toast } from "sonner";
 
 export default function PriceAlerts() {
   const [formData, setFormData] = useState({
     from: "",
     to: "",
     date: "",
+    preferredPrice: "",
     email: "",
   });
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      setFormData({ from: "", to: "", date: "", email: "" });
-    }, 3000);
+    try {
+      await apiFetch(
+        "/price-alerts",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            route_from: formData.from,
+            route_to: formData.to,
+            travel_date: formData.date,
+            preferred_price: Number(formData.preferredPrice),
+            email: formData.email,
+          }),
+        },
+        getAccessToken() || undefined
+      );
+
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        setFormData({ from: "", to: "", date: "", preferredPrice: "", email: "" });
+      }, 3000);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to set price alert");
+    }
   };
 
   return (
@@ -92,6 +115,21 @@ export default function PriceAlerts() {
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="preferredPrice">Preferred Price</Label>
+                <Input
+                  id="preferredPrice"
+                  type="number"
+                  placeholder="e.g. 5000"
+                  required
+                  min="1"
+                  value={formData.preferredPrice}
+                  onChange={(e) =>
+                    setFormData({ ...formData, preferredPrice: e.target.value })
                   }
                 />
               </div>

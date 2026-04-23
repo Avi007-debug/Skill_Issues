@@ -5,6 +5,9 @@ import { Button } from "../components/ui/button";
 import { Send, Bot, User } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import PageTransition from "../components/PageTransition";
+import { apiFetch } from "../lib/api";
+import { getAccessToken } from "../lib/auth";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -12,19 +15,6 @@ interface Message {
   content: string;
   timestamp: Date;
 }
-
-const botResponses: Record<string, string> = {
-  "cheapest flights":
-    "The cheapest flights are usually on Tuesdays and Wednesdays. I recommend booking 3-6 weeks in advance for domestic flights and 2-3 months for international routes.",
-  "visa requirements":
-    "Visa requirements depend on your destination and nationality. I can help you check specific country requirements. Which country are you traveling to?",
-  "baggage limits":
-    "Most airlines allow 1 carry-on (7-10kg) and 1 checked bag (23kg) for economy. Premium cabins offer higher limits. Always check with your specific airline.",
-  "travel recommendations":
-    "I'd love to help! Are you looking for adventure, relaxation, culture, or food experiences? And what's your approximate budget?",
-  default:
-    "I'm here to help with flight bookings, travel tips, visa info, and more. Try asking about cheapest flights, visa requirements, or baggage limits!",
-};
 
 export default function ChatBot() {
   const [messages, setMessages] = useState<Message[]>([
@@ -48,16 +38,6 @@ export default function ChatBot() {
     scrollToBottom();
   }, [messages]);
 
-  const getBotResponse = (userInput: string): string => {
-    const lowerInput = userInput.toLowerCase();
-    for (const [key, value] of Object.entries(botResponses)) {
-      if (lowerInput.includes(key)) {
-        return value;
-      }
-    }
-    return botResponses.default;
-  };
-
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -72,16 +52,28 @@ export default function ChatBot() {
     setInput("");
     setIsTyping(true);
 
-    setTimeout(() => {
+    try {
+      const response = await apiFetch<{ answer: string }>(
+        "/chatbot/ask",
+        {
+          method: "POST",
+          body: JSON.stringify({ question: userMessage.content }),
+        },
+        getAccessToken() || undefined
+      );
+
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "bot",
-        content: getBotResponse(input),
+        content: response.answer,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Chat service unavailable");
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   return (
