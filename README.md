@@ -5,11 +5,11 @@ AI-powered travel platform with a React frontend and FastAPI backend using Supab
 
 ## Project Structure
 
-- `src/` - Frontend (React + Vite)
+- `frontend/` - Frontend (React + Vite)
 - `backend/` - Backend (FastAPI + Supabase)
-- `backend/supabase/schema.sql` - SQL schema and seed flights
+- `backend/supabase/schema.sql` - SQL schema and seed data
 
-## Implemented Features (Core + Smart 1 to 6)
+## Implemented Features
 
 - User Authentication: signup and login with Supabase Auth
 - User Profile: profile fetch and display
@@ -18,10 +18,17 @@ AI-powered travel platform with a React frontend and FastAPI backend using Supab
 - Flight Booking: booking creation with passenger details
 - AI Travel Chatbot: backend-powered Q&A endpoint
 - Price Alerts: route/date/preferred-price alert creation
+- AI Itinerary Generator: backend-generated daily plan by destination/interests
+- Carbon Footprint Tracker: eco-flight data from backend
+- Squad Trip Split: create squad + member list + shared expense
+- Vibe Mode Toggle: persisted per user in backend preferences
+- Swipe Destination Discovery: like/skip destination swipes
+- Reel-Worthy Destination Score: destination score cards from backend data
+- Travel Buddy Finder: profile creation + matching by destination
 
 ## Environment Variables
 
-Create `.env` in project root from `.env.example`:
+Create `frontend/.env` from `frontend/.env.example`:
 
 - `VITE_API_BASE_URL=http://localhost:8000`
 
@@ -45,6 +52,7 @@ Create `backend/.env` from `backend/.env.example`:
 Frontend:
 
 ```bash
+cd frontend
 npm install
 npm run dev:frontend
 ```

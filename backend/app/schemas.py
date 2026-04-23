@@ -36,3 +36,51 @@ class PriceAlertPayload(BaseModel):
 
 class ChatbotPayload(BaseModel):
     question: str = Field(min_length=2)
+
+
+# --- Feature 7: AI Itinerary Generator ---
+class ItineraryPayload(BaseModel):
+    destination: str = Field(min_length=2)
+    duration_days: int = Field(gt=0, le=30)
+    budget: str | None = None
+    interests: list[str] = []
+
+
+# --- Feature 9: Squad Trip Split ---
+class SquadCreatePayload(BaseModel):
+    squad_name: str = Field(min_length=2)
+    destination: str | None = None
+    travel_date: str | None = None
+    members: list[str] = []  # list of member names
+
+
+class SquadExpensePayload(BaseModel):
+    squad_id: str
+    description: str = Field(min_length=2)
+    amount: float = Field(gt=0)
+    paid_by_member_id: str | None = None
+
+
+# --- Feature 10: Swipe Destination Discovery ---
+class SwipeActionPayload(BaseModel):
+    destination_id: str
+    action: str = Field(pattern="^(like|skip)$")
+
+
+# --- Feature 12: Travel Buddy Finder ---
+class BuddyProfilePayload(BaseModel):
+    destination: str = Field(min_length=2)
+    travel_start: str | None = None
+    travel_end: str | None = None
+    interests: list[str] = []
+    bio: str | None = None
+
+
+class BuddyMatchPayload(BaseModel):
+    receiver_id: str
+    status: str = Field(default="pending", pattern="^(pending|accepted|rejected)$")
+
+
+# --- Vibe Mode Toggle ---
+class VibeModePayload(BaseModel):
+    enabled: bool
