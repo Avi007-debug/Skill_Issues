@@ -82,9 +82,9 @@ export default function Auth() {
       >
         <div className="text-center mb-8">
           <Plane className="h-12 w-12 text-accent mx-auto mb-4" />
-          <h1 className="text-3xl brand">Welcome to SkyDash</h1>
+          <h1 className="text-3xl brand">Welcome to AirZy</h1>
           <p className="text-muted-foreground mt-2">
-            Sign in to manage your bookings
+            Sign in to manage your journeys
           </p>
         </div>
 

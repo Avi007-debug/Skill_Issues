@@ -93,7 +93,7 @@ export default function PlaneAnimation({
                         Boarding Pass
                       </div>
                       <div className="text-3xl mt-2 brand" style={{ color: airlineColor }}>
-                        SkyDash
+                        AirZy
                       </div>
                     </div>
                     <div className="grid grid-cols-4 gap-5">

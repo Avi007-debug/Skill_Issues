@@ -40,7 +40,7 @@ export default function ChatBot() {
       id: "1",
       role: "bot",
       content:
-        "Hi! I'm your SkyDash AI assistant. Ask me about flights, visas, baggage, or travel recommendations!",
+        "Hi! I'm your AirZy AI assistant. Ask me about flights, visas, baggage, or travel recommendations!",
       timestamp: new Date(),
     },
   ]);

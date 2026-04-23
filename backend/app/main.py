@@ -2,6 +2,9 @@ from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import traceback
+from gotrue.errors import AuthApiError
 
 from .config import settings
 from .schemas import (
@@ -21,6 +24,20 @@ from .schemas import (
 from .supabase_client import get_anon_client, get_service_client
 
 app = FastAPI(title="Skill Issues Travel API", version="1.0.0")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "error": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": settings.frontend_url,
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -75,20 +92,45 @@ def signup(payload: SignupPayload) -> dict[str, Any]:
     anon = get_anon_client()
     service = get_service_client()
 
-    response = anon.auth.sign_up(
-        {
-            "email": payload.email,
-            "password": payload.password,
-            "options": {"data": {"full_name": payload.full_name}},
-        }
-    )
+    try:
+        response = anon.auth.sign_up(
+            {
+                "email": payload.email,
+                "password": payload.password,
+                "options": {"data": {"full_name": payload.full_name}},
+            }
+        )
+    except AuthApiError as error:
+        message = str(error).lower()
+        if "rate limit" not in message and getattr(error, "status_code", None) != 429:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+
+        admin_response = service.auth.admin.create_user(
+            {
+                "email": payload.email,
+                "password": payload.password,
+                "email_confirm": True,
+                "user_metadata": {"full_name": payload.full_name},
+            }
+        )
+
+        if not admin_response.user:
+            raise HTTPException(status_code=400, detail="Signup failed")
+
+        response = anon.auth.sign_in_with_password(
+            {"email": payload.email, "password": payload.password}
+        )
 
     if not response.user:
         raise HTTPException(status_code=400, detail="Signup failed")
 
-    service.table("profiles").upsert(
-        {"id": response.user.id, "full_name": payload.full_name, "email": payload.email}
-    ).execute()
+    try:
+        service.table("profiles").upsert(
+            {"id": response.user.id, "full_name": payload.full_name, "email": payload.email}
+        ).execute()
+    except Exception:
+        # Auth is more important than the optional profile row on first signup.
+        pass
 
     return {
         "user": {
@@ -484,14 +526,24 @@ def find_buddies(destination: str = "", authorization: str | None = Header(defau
     user_id = _current_user_id(authorization)
     service = get_service_client()
 
-    query = service.table("buddy_profiles").select("*, profiles(full_name, avatar_url)").eq("is_active", True)
+    query = service.table("buddy_profiles").select("*").eq("is_active", True)
     if destination:
         query = query.ilike("destination", f"%{destination}%")
     if user_id:
         query = query.neq("user_id", user_id)
 
     result = query.execute()
-    return {"items": result.data or []}
+    buddies = result.data or []
+
+    if buddies:
+        user_ids = [b["user_id"] for b in buddies if b.get("user_id")]
+        if user_ids:
+            profiles_res = service.table("profiles").select("id, full_name, avatar_url").in_("id", user_ids).execute()
+            profiles_map = {p["id"]: p for p in (profiles_res.data or [])}
+            for b in buddies:
+                b["profiles"] = profiles_map.get(b["user_id"])
+
+    return {"items": buddies}
 
 
 @app.post("/buddies/match")
@@ -514,8 +566,22 @@ def my_buddy_matches(authorization: str | None = Header(default=None)) -> dict[s
     service = get_service_client()
     result = (
         service.table("buddy_matches")
-        .select("*, profiles!buddy_matches_sender_id_fkey(full_name, avatar_url)")
+        .select("*")
         .or_(f"sender_id.eq.{user_id},receiver_id.eq.{user_id}")
         .execute()
     )
-    return {"items": result.data or []}
+    matches = result.data or []
+    
+    if matches:
+        other_user_ids = [
+            m["receiver_id"] if m["sender_id"] == user_id else m["sender_id"]
+            for m in matches
+        ]
+        if other_user_ids:
+            profiles_res = service.table("profiles").select("id, full_name, avatar_url").in_("id", other_user_ids).execute()
+            profiles_map = {p["id"]: p for p in (profiles_res.data or [])}
+            for m in matches:
+                other_id = m["receiver_id"] if m["sender_id"] == user_id else m["sender_id"]
+                m["profiles"] = profiles_map.get(other_id)
+
+    return {"items": matches}
