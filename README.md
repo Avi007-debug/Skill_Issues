@@ -1,5 +1,5 @@
 
-# SkyDash Flight Platform
+# AirZy Flight Platform
 
 AI-powered travel platform with a React frontend and FastAPI backend using Supabase.
 
