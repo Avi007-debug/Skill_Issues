@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { Plane, Clock, TrendingUp, Flame, AlertCircle } from "lucide-react";
 import BookButton from "../components/BookButton";
 import { Slider } from "../components/ui/slider";
@@ -11,70 +11,60 @@ import PlaneAnimation from "../components/PlaneAnimation";
 import { getAirlineColor } from "../utils/airlineColors";
 import PageTransition from "../components/PageTransition";
 import AnimationOverlay from "../components/AnimationOverlay";
+import { apiFetch, Flight } from "../lib/api";
+import { toast } from "sonner";
 
-interface Flight {
-  id: string;
-  airline: string;
-  departureTime: string;
-  arrivalTime: string;
-  duration: string;
-  price: number;
-  seatsLeft: number;
-  tag?: "Hot" | "Cheapest" | "Rising";
+type FlightTag = "Hot" | "Cheapest" | "Rising";
+
+interface UIFlight extends Flight {
+  tag?: FlightTag;
 }
-
-const mockFlights: Flight[] = [
-  {
-    id: "1",
-    airline: "SkyWings Airlines",
-    departureTime: "08:00 AM",
-    arrivalTime: "11:30 AM",
-    duration: "3h 30m",
-    price: 299,
-    seatsLeft: 12,
-    tag: "Cheapest",
-  },
-  {
-    id: "2",
-    airline: "CloudJet Airways",
-    departureTime: "10:15 AM",
-    arrivalTime: "01:45 PM",
-    duration: "3h 30m",
-    price: 349,
-    seatsLeft: 5,
-    tag: "Hot",
-  },
-  {
-    id: "3",
-    airline: "Horizon Express",
-    departureTime: "02:30 PM",
-    arrivalTime: "06:00 PM",
-    duration: "3h 30m",
-    price: 389,
-    seatsLeft: 18,
-  },
-  {
-    id: "4",
-    airline: "AeroFly International",
-    departureTime: "05:45 PM",
-    arrivalTime: "09:15 PM",
-    duration: "3h 30m",
-    price: 425,
-    seatsLeft: 8,
-    tag: "Rising",
-  },
-];
 
 export default function Flights() {
   const navigate = useNavigate();
-  const [priceRange, setPriceRange] = useState([0, 500]);
+  const location = useLocation();
+  const [priceRange, setPriceRange] = useState([0, 30000]);
   const [selectedAirlines, setSelectedAirlines] = useState<string[]>([]);
   const [showPlaneAnimation, setShowPlaneAnimation] = useState(false);
-  const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
+  const [selectedFlight, setSelectedFlight] = useState<UIFlight | null>(null);
+  const [flights, setFlights] = useState<UIFlight[]>([]);
 
-  const airlines = Array.from(new Set(mockFlights.map((f) => f.airline)));
+  useEffect(() => {
+    const fetchFlights = async () => {
+      try {
+        const query = new URLSearchParams(location.search);
+        const params = new URLSearchParams();
+        const source = query.get("source");
+        const destination = query.get("destination");
+        const date = query.get("date");
 
-  const handleBookFlight = (flight: Flight) => {
+        if (source) params.set("source", source);
+        if (destination) params.set("destination", destination);
+        if (date) params.set("date", date);
+
+        const result = await apiFetch<{ items: Flight[] }>(`/flights?${params.toString()}`);
+        const taggedFlights = result.items.map((flight, index) => ({
+          ...flight,
+          tag: index % 3 === 0 ? "Cheapest" : index % 3 === 1 ? "Hot" : "Rising",
+        }));
+        setFlights(taggedFlights);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not load flights");
+      }
+    };
+
+    fetchFlights();
+  }, [location.search]);
+
+  const airlines = Array.from(new Set(flights.map((f) => f.airline)));
+
+  const filteredFlights = flights.filter((flight) => {
+    const inPrice = flight.price >= priceRange[0] && flight.price <= priceRange[1];
+    const inAirline = selectedAirlines.length === 0 || selectedAirlines.includes(flight.airline);
+    return inPrice && inAirline;
+  });
+
+  const handleBookFlight = (flight: UIFlight) => {
     setSelectedFlight(flight);
     setShowPlaneAnimation(true);
   };
@@ -123,8 +113,8 @@ export default function Flights() {
                   <Slider
                     value={priceRange}
                     onValueChange={setPriceRange}
-                    max={500}
-                    step={10}
+                    max={30000}
+                    step={100}
                     className="mb-2"
                   />
                   <div className="flex justify-between text-sm text-muted-foreground">
@@ -166,7 +156,7 @@ export default function Flights() {
           </aside>
 
           <div className="lg:col-span-3 space-y-4">
-            {mockFlights.map((flight, index) => (
+            {filteredFlights.map((flight, index) => (
               <motion.div
                 key={flight.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -205,7 +195,7 @@ export default function Flights() {
                         <div className="grid grid-cols-3 gap-4 items-center">
                           <div>
                             <div className="text-2xl">
-                              {flight.departureTime}
+                              {flight.departure_time}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               Departure
@@ -220,7 +210,7 @@ export default function Flights() {
                           </div>
 
                           <div className="text-right">
-                            <div className="text-2xl">{flight.arrivalTime}</div>
+                            <div className="text-2xl">{flight.arrival_time}</div>
                             <div className="text-sm text-muted-foreground">
                               Arrival
                             </div>
@@ -228,7 +218,7 @@ export default function Flights() {
                         </div>
 
                         <div className="mt-4 text-sm text-muted-foreground">
-                          {flight.seatsLeft} seats left
+                          {flight.seats_left} seats left
                         </div>
                       </div>
 

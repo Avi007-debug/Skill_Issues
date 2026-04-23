@@ -9,6 +9,7 @@ import PriceAlerts from "./pages/PriceAlerts";
 import Itinerary from "./pages/Itinerary";
 import CarbonTracker from "./pages/CarbonTracker";
 import GroupBooking from "./pages/GroupBooking";
+import Profile from "./pages/Profile";
 
 export const router = createBrowserRouter([
   {
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
       { path: "flights", Component: Flights },
       { path: "booking", Component: Booking },
       { path: "auth", Component: Auth },
+      { path: "profile", Component: Profile },
       { path: "chatbot", Component: ChatBot },
       { path: "price-alerts", Component: PriceAlerts },
       { path: "itinerary", Component: Itinerary },
