@@ -19,6 +19,8 @@ export default function Header({ theme, toggleTheme }: HeaderProps) {
     { path: "/flights", label: "Flights" },
     { path: "/carbon-tracker", label: "Eco Flights" },
     { path: "/itinerary", label: "Itinerary" },
+    { path: "/price-alerts", label: "Price Alerts" },
+    { path: "/group-booking", label: "Group Booking" },
     { path: "/discover", label: "Discover" },
     { path: "/buddies", label: "Buddies" },
   ];

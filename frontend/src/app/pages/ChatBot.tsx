@@ -176,7 +176,7 @@ export default function ChatBot() {
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSend()}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Ask me anything about travel..."
                 className="flex-1"
               />
